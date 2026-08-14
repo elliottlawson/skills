@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>codebase diagram</title>
+<style>
+  :root{
+    --paper:#e9e3cc; --paper-2:#f2ecd8; --paper-3:#dfd9c2;
+    --ink:#1b1b13; --mut:#6f6a58; --line:#b9b29a;
+    --sel:#a8341c;
+    --mono:"SF Mono","Menlo","Consolas","Liberation Mono",monospace;
+    --serif:"Georgia","Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    display:grid; height:100vh; overflow:hidden;
+    grid-template-rows:52px 1fr 26px; grid-template-columns:236px 1fr 384px;
+    grid-template-areas:"top top top" "legend stage panel" "hints hints hints";
+    background:var(--paper); color:var(--ink); font-family:var(--mono); font-size:12px;
+  }
+  /* ── header ─────────────────────────────── */
+  #top{grid-area:top; display:flex; align-items:stretch; border-bottom:1px solid var(--ink); background:var(--paper-2)}
+  #top .brand{display:flex; align-items:center; padding:0 14px; border-right:1px solid var(--line); white-space:nowrap}
+  #top .brand b{font-weight:700; letter-spacing:.04em}
+  #stats{display:flex; align-items:stretch; flex:1; min-width:0; overflow:hidden}
+  .stat{display:flex; flex-direction:column; justify-content:center; padding:0 14px; border-right:1px solid var(--line); min-width:0}
+  .stat .l{font-size:8.5px; letter-spacing:.14em; color:var(--mut); text-transform:uppercase; white-space:nowrap}
+  .stat .v{font-size:13px; font-weight:700; white-space:nowrap}
+  .controls{display:flex; align-items:center; gap:8px; padding:0 12px}
+  button{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    background:var(--paper-2); color:var(--ink); border:1px solid var(--ink); padding:7px 10px; cursor:pointer}
+  button:hover{background:var(--ink); color:var(--paper-2)}
+  /* ── legend ─────────────────────────────── */
+  #legend{grid-area:legend; border-right:1px solid var(--ink); overflow-y:auto; background:var(--paper)}
+  #legend .g{padding:12px 12px 4px; font-size:9px; letter-spacing:.16em; color:var(--mut); text-transform:uppercase; border-bottom:1px solid var(--line)}
+  #legend .li{display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:pointer; border-bottom:1px solid var(--paper-3)}
+  #legend .li:hover{background:var(--paper-2)}
+  #legend .li.on{background:var(--ink); color:var(--paper)}
+  #legend .li .b{flex:0 0 auto; min-width:24px; text-align:center; border:1px solid currentColor; padding:2px 3px; font-size:9px; font-weight:700}
+  #legend .li .n{flex:1; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; line-height:1.35}
+  #legend .li .c{font-size:9px; color:var(--mut)}
+  #legend .li.on .c{color:var(--paper-3)}
+  #legend .li.dashed .b{border-style:dashed}
+  /* ── stage ──────────────────────────────── */
+  #stage{grid-area:stage; position:relative; overflow:hidden;
+    background-image:radial-gradient(var(--paper-3) 1px, transparent 1px); background-size:26px 26px}
+  #canvas{width:100%; height:100%; display:block; cursor:grab; touch-action:none}
+  #canvas.dragging{cursor:grabbing}
+  #zoomctl{position:absolute; right:10px; top:10px; display:flex; flex-direction:column; gap:6px}
+  #zoomctl button{width:26px; height:26px; padding:0; font-size:14px}
+  #tooltip{position:absolute; max-width:340px; background:var(--ink); color:var(--paper-2);
+    padding:8px 10px; font-size:10.5px; line-height:1.5; pointer-events:none; z-index:5; white-space:pre-wrap; word-break:break-word}
+  #tooltip .tl{display:block; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--paper-3); margin-bottom:4px}
+  /* ── panel ──────────────────────────────── */
+  #panel{grid-area:panel; border-left:1px solid var(--ink); background:var(--paper-2); display:flex; flex-direction:column; overflow:hidden}
+  #tabs{display:flex; border-bottom:1px solid var(--ink)}
+  #tabs button{flex:1; border:0; border-right:1px solid var(--ink); border-radius:0; padding:10px 0}
+  #tabs button:last-child{border-right:0}
+  #tabs button.on{background:var(--ink); color:var(--paper)}
+  #panel-body{flex:1; overflow-y:auto; padding:18px 20px 30px}
+  #panel-body .kicker{font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--mut); border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:14px}
+  #panel-body h1{font-family:var(--serif); font-size:24px; font-weight:400; line-height:1.15; margin-bottom:4px}
+  #panel-body .sub{font-size:11px; color:var(--mut); margin-bottom:16px; line-height:1.5}
+  #panel-body p{font-size:12px; line-height:1.65; margin-bottom:12px}
+  #panel-body h2{font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--mut); margin:18px 0 8px; border-bottom:1px solid var(--line); padding-bottom:5px}
+  #panel-body .cond{border:1px dashed var(--sel); padding:10px 12px; font-size:11px; line-height:1.55; margin:12px 0}
+  #panel-body .cond b{display:block; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--sel); margin-bottom:4px}
+  #panel-body pre{background:var(--paper); border:1px solid var(--line); padding:8px 10px; font-size:10px; line-height:1.5; overflow-x:auto; margin-bottom:8px; white-space:pre-wrap; word-break:break-word}
+  #panel-body mark{background:var(--ink); color:var(--paper); padding:0 3px}
+  /* ── footer ─────────────────────────────── */
+  #hints{grid-area:hints; display:flex; align-items:center; justify-content:center; gap:18px;
+    border-top:1px solid var(--ink); background:var(--paper-2); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--mut)}
+  /* ── svg elements ───────────────────────── */
+  .edge{fill:none; stroke:var(--ink); stroke-width:1.4}
+  .edge.dashed{stroke-dasharray:5 4; stroke-width:1.2}
+  .edge-hit{fill:none; stroke:transparent; stroke-width:16; pointer-events:stroke; cursor:pointer}
+  .edge.sel{stroke:var(--sel); stroke-width:2.2}
+  .edge-label{font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; fill:var(--mut);
+    paint-order:stroke; stroke:var(--paper); stroke-width:4; text-anchor:middle; pointer-events:none;
+    opacity:0; transition:opacity .15s}
+  .edge-label.on{opacity:1}
+  .node{cursor:pointer}
+  .node .face{stroke:var(--ink); stroke-width:1.2; stroke-linejoin:round}
+  .node.sel .face{stroke:var(--sel); stroke-width:2.2}
+  .node .key{font-size:11px; font-weight:700; text-anchor:middle; dominant-baseline:central; fill:var(--ink); pointer-events:none}
+  .node.sel .key{fill:var(--sel)}
+  .dot{fill:var(--ink)}
+  .dot-hit{fill:transparent; pointer-events:all; cursor:help}
+  .dim{opacity:.18; transition:opacity .15s}
+  .node,.edge,.edge-label,.dot{transition:opacity .15s}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="brand"><b id="repo-title"></b></div>
+  <div id="stats"></div>
+  <div class="controls">
+    <button id="btn-flow">❚❚ Pause the flow</button>
+    <button id="btn-step">Trace one step</button>
+    <button id="btn-reset">Reset view</button>
+  </div>
+</header>
+<aside id="legend"></aside>
+<main id="stage">
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="zoomctl"><button id="zin">+</button><button id="zout">−</button></div>
+  <div id="tooltip" hidden></div>
+</main>
+<aside id="panel">
+  <div id="tabs">
+    <button data-tab="what" class="on">What it does</button>
+    <button data-tab="how">How it's built</button>
+  </div>
+  <div id="panel-body"></div>
+</aside>
+<footer id="hints">
+  <span>◈ drag to pan</span><span>◈ scroll to zoom</span><span>◈ hover to read</span>
+  <span>◈ click to inspect</span><span>◈ hover a dot to read its data</span><span>◈ dashed = not switched on</span>
+</footer>
+<script>
+"use strict";
+const DIAGRAM = /*__DIAGRAM_JSON__*/null;
+
+/* ── projection ───────────────────────────── */
+const TW = 52, TH = 26;                 // iso tile half-extents (2:1)
+const proj = (gx, gy) => [(gx - gy) * TW, (gx + gy) * TH];
+const $ = id => document.getElementById(id);
+const svgNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}) => { const e = document.createElementNS(svgNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const pts = arr => arr.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+
+/* node → screen geometry */
+function geom(n){
+  const c = [[n.gx,n.gy],[n.gx+n.w,n.gy],[n.gx+n.w,n.gy+n.d],[n.gx,n.gy+n.d]];
+  const base = c.map(([x,y]) => proj(x,y));
+  const top  = base.map(([x,y]) => [x, y - n.h]);
+  const cx = (top[0][0]+top[2][0])/2, cy = (top[0][1]+top[2][1])/2;
+  return {base, top, cx, cy};
+}
+
+/* clip segment (C inside poly → P outside) to poly boundary */
+function clipToPoly(C, P, poly){
+  let best = null, bestT = Infinity;
+  for (let i = 0; i < poly.length; i++){
+    const A = poly[i], B = poly[(i+1)%poly.length];
+    const d1x = P[0]-C[0], d1y = P[1]-C[1], d2x = B[0]-A[0], d2y = B[1]-A[1];
+    const den = d1x*d2y - d1y*d2x;
+    if (Math.abs(den) < 1e-9) continue;
+    const t = ((A[0]-C[0])*d2y - (A[1]-C[1])*d2x)/den;
+    const u = ((A[0]-C[0])*d1y - (A[1]-C[1])*d1x)/den;
+    if (t > 0.001 && t < 1 && u >= -0.001 && u <= 1.001 && t < bestT){
+      bestT = t; best = [C[0]+d1x*t, C[1]+d1y*t];
+    }
+  }
+  return best || C;
+}
+
+/* ── state ────────────────────────────────── */
+const byId = {}; DIAGRAM.nodes.forEach(n => byId[n.id] = n);
+let selection = {kind:"overview"};      // {kind:"overview"|"node"|"edge", id}
+let tab = "what";
+let running = true;
+let vb = {x:0,y:0,w:100,h:100}, vb0 = null;
+
+/* neighbors for dimming */
+const neighbors = id => { const s = new Set([id]);
+  DIAGRAM.edges.forEach(e => { if (e.from===id) s.add(e.to); if (e.to===id) s.add(e.from); });
+  return s; };
+
+/* ── build scene ──────────────────────────── */
+const dots = [];   // {circle, hit, pathLen, cum, pts, dist, speed, snippets, idx, paused, edge}
+function build(){
+  const svg = $("canvas");
+  svg.innerHTML = "";
+  const defs = el("defs");
+  defs.innerHTML =
+    `<pattern id="hatchL" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+       <rect width="7" height="7" fill="#ddd7c0"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1b1b13" stroke-width="1" opacity=".4"/>
+     </pattern>
+     <pattern id="hatchR" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+       <rect width="7" height="7" fill="#d3cdb6"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1b1b13" stroke-width="1" opacity=".4"/>
+     </pattern>`;
+  svg.appendChild(defs);
+
+  const gEdges = el("g"), gNodes = el("g"), gDots = el("g"), gLabels = el("g");
+  svg.append(gEdges, gNodes, gDots, gLabels);
+
+  /* edges (under boxes) */
+  DIAGRAM.edges.forEach((e, ei) => {
+    const A = byId[e.from], B = byId[e.to];
+    const ga = geom(A), gb = geom(B);
+    const via = (e.via || []).map(([x,y]) => { const p = proj(x,y); return [p[0], p[1]-8]; });
+    const rawA = [ga.cx, ga.cy], rawB = [gb.cx, gb.cy];
+    const nextA = via.length ? via[0] : rawB;
+    const prevB = via.length ? via[via.length-1] : rawA;
+    const pA = clipToPoly(rawA, nextA, ga.top);
+    const pB = clipToPoly(rawB, prevB, gb.top);
+    const path = [pA, ...via, pB];
+    e._path = path;
+
+    const line = el("polyline", {points: pts(path),
+      class: "edge" + (e.dashed ? " dashed" : ""), "data-ei": ei});
+    const hit = el("polyline", {points: pts(path), class:"edge-hit", "data-ei": ei});
+    hit.addEventListener("click", ev => { ev.stopPropagation(); select("edge", ei); });
+    hit.addEventListener("mouseenter", () => { if (e._labelEl) e._labelEl.classList.add("on"); });
+    hit.addEventListener("mouseleave", () => { if (e._labelEl && !(selection.kind === "edge" && selection.id === ei)) e._labelEl.classList.remove("on"); });
+    gEdges.append(line, hit);
+    e._el = line;
+
+    if (e.label){
+      const mid = pathMid(path);
+      const t = el("text", {x: mid[0], y: mid[1]-5, class:"edge-label"});
+      t.textContent = e.label; gLabels.appendChild(t); e._labelEl = t;
+    }
+
+    /* animated dots carry inspectable snippets */
+    if (!e.dashed && e.snippets && e.snippets.length){
+      const {cum, total} = pathLengths(path);
+      const nDots = Math.max(1, Math.min(e.dots || Math.round(total/170), 4));
+      for (let i = 0; i < nDots; i++){
+        const c = el("circle", {r:3.4, class:"dot"});
+        const h = el("circle", {r:11, class:"dot-hit"});
+        gDots.append(c, h);
+        const d = {circle:c, hit:h, cum, total, path,
+          dist: (i/nDots)*total, speed: 46 + (ei%5)*7 + i*3,
+          snippets: e.snippets, idx: i % e.snippets.length, paused:false, edge:e, ei};
+        h.addEventListener("mouseenter", () => { d.paused = true; showDotTip(d); });
+        h.addEventListener("mouseleave", () => { d.paused = false; hideTip(); });
+        dots.push(d); e._dots = e._dots || []; e._dots.push(d);
+      }
+    }
+  });
+
+  /* nodes, painter-sorted back → front */
+  [...DIAGRAM.nodes].sort((a,b) => ((a.gx+a.gy)-(b.gx+b.gy)) || (a.gx - b.gx)).forEach(n => {
+    const g = geom(n); const grp = el("g", {class:"node", "data-id": n.id});
+    const side1 = [g.top[3], g.top[2], g.base[2], g.base[3]];   // left face
+    const side2 = [g.top[2], g.top[1], g.base[1], g.base[2]];   // right face
+    grp.append(
+      el("polygon", {points: pts(side1), fill:"url(#hatchL)", class:"face"}),
+      el("polygon", {points: pts(side2), fill:"url(#hatchR)", class:"face"}),
+      el("polygon", {points: pts(g.top), fill: n.dashed ? "var(--paper-3)" : "var(--paper-2)", class:"face",
+        "stroke-dasharray": n.dashed ? "4 3" : "none"}),
+    );
+    const key = el("text", {x:g.cx, y:g.cy, class:"key"}); key.textContent = n.key; grp.appendChild(key);
+    grp.addEventListener("click", ev => { ev.stopPropagation(); select("node", n.id); });
+    grp.addEventListener("mouseenter", () => showNodeTip(n));
+    grp.addEventListener("mouseleave", hideTip);
+    gNodes.appendChild(grp); n._el = grp;
+  });
+
+  /* initial view = fit everything */
+  let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+  DIAGRAM.nodes.forEach(n => { const g = geom(n);
+    [...g.top, ...g.base].forEach(([x,y]) => { minx=Math.min(minx,x); maxx=Math.max(maxx,x);
+      miny=Math.min(miny,y); maxy=Math.max(maxy,y); }); });
+  DIAGRAM.edges.forEach(e => (e._path||[]).forEach(([x,y]) => {
+    minx=Math.min(minx,x); maxx=Math.max(maxx,x); miny=Math.min(miny,y); maxy=Math.max(maxy,y); }));
+  const pad = 42;
+  vb0 = vb = {x:minx-pad, y:miny-pad, w:(maxx-minx)+2*pad, h:(maxy-miny)+2*pad};
+  applyVb();
+}
+function pathLengths(path){
+  const cum = [0];
+  for (let i = 1; i < path.length; i++)
+    cum.push(cum[i-1] + Math.hypot(path[i][0]-path[i-1][0], path[i][1]-path[i-1][1]));
+  return {cum, total: cum[cum.length-1]};
+}
+function pathMid(path){ const {cum, total} = pathLengths(path); return pointAt(path, cum, total/2); }
+function pointAt(path, cum, d){
+  if (d <= 0) return path[0];
+  for (let i = 1; i < cum.length; i++){
+    if (d <= cum[i]){
+      const t = (d - cum[i-1]) / (cum[i] - cum[i-1] || 1);
+      return [path[i-1][0] + (path[i][0]-path[i-1][0])*t,
+              path[i-1][1] + (path[i][1]-path[i-1][1])*t];
+    }
+  }
+  return path[path.length-1];
+}
+
+/* ── animation ────────────────────────────── */
+let lastT = null;
+function tick(ts){
+  if (lastT === null) lastT = ts;
+  const dt = Math.min((ts - lastT)/1000, .1); lastT = ts;
+  if (running) advance(dt);
+  requestAnimationFrame(tick);
+}
+function advance(dt){
+  dots.forEach(d => {
+    if (d.paused) return;
+    d.dist += d.speed * dt;
+    if (d.dist >= d.total){ d.dist -= d.total; d.idx = (d.idx + 1) % d.snippets.length; }
+    const [x,y] = pointAt(d.path, d.cum, d.dist);
+    d.circle.setAttribute("cx", x); d.circle.setAttribute("cy", y);
+    d.hit.setAttribute("cx", x); d.hit.setAttribute("cy", y);
+  });
+}
+
+/* ── tooltips ─────────────────────────────── */
+const stage = $("stage"), tip = $("tooltip");
+function placeTip(){ const r = stage.getBoundingClientRect();
+  tip.style.left = Math.min(lastMouse.x - r.left + 14, r.width - 350) + "px";
+  tip.style.top  = Math.max(lastMouse.y - r.top - 10, 8) + "px"; }
+let lastMouse = {x:0,y:0};
+stage.addEventListener("mousemove", e => { lastMouse = {x:e.clientX, y:e.clientY}; if (!tip.hidden) placeTip(); });
+function showNodeTip(n){ tip.innerHTML = `<span class="tl">${esc(groupName(n.group))} · ${esc(n.key)}</span>${esc(n.name)} — ${esc(n.blurb||"")}`; tip.hidden = false; placeTip(); }
+function showDotTip(d){ tip.innerHTML = `<span class="tl">${esc(d.edge.label||"data flow")} · ${esc(d.edge.from)} → ${esc(d.edge.to)}</span>${esc(d.snippets[d.idx])}`; tip.hidden = false; placeTip(); }
+function hideTip(){ tip.hidden = true; }
+
+/* ── selection / panel ────────────────────── */
+function groupName(key){ const g = (DIAGRAM.groups||[]).find(g => g.key === key); return g ? g.name : key; }
+function select(kind, id){
+  selection = {kind, id}; applySelection(); renderPanel();
+  document.querySelectorAll("#legend .li").forEach(li =>
+    li.classList.toggle("on", kind === "node" && li.dataset.node === id));
+}
+function applySelection(){
+  DIAGRAM.nodes.forEach(n => n._el.classList.remove("sel","dim"));
+  DIAGRAM.edges.forEach(e => { e._el.classList.remove("sel","dim"); if (e._labelEl) e._labelEl.classList.remove("dim","on");
+    (e._dots||[]).forEach(d => { d.circle.classList.remove("dim"); }); });
+  if (selection.kind === "node"){
+    const keep = neighbors(selection.id);
+    byId[selection.id]._el.classList.add("sel");
+    DIAGRAM.nodes.forEach(n => { if (!keep.has(n.id)) n._el.classList.add("dim"); });
+    DIAGRAM.edges.forEach(e => { const on = e.from===selection.id || e.to===selection.id;
+      if (!on){ e._el.classList.add("dim"); if (e._labelEl) e._labelEl.classList.add("dim");
+        (e._dots||[]).forEach(d => d.circle.classList.add("dim")); } });
+  } else if (selection.kind === "edge"){
+    const e = DIAGRAM.edges[selection.id];
+    e._el.classList.add("sel");
+    if (e._labelEl) e._labelEl.classList.add("on");
+    DIAGRAM.nodes.forEach(n => { if (n.id !== e.from && n.id !== e.to) n._el.classList.add("dim"); });
+    DIAGRAM.edges.forEach(o => { if (o !== e){ o._el.classList.add("dim"); if (o._labelEl) o._labelEl.classList.add("dim");
+      (o._dots||[]).forEach(d => d.circle.classList.add("dim")); } });
+  }
+}
+function paras(text){ return String(text||"").split(/\n+/).filter(Boolean).map(p => `<p>${p}</p>`).join(""); }
+function renderPanel(){
+  const body = $("panel-body");
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  let kicker="", title="", sub="", what="", how="";
+  if (selection.kind === "overview"){
+    const o = DIAGRAM.overview || {};
+    kicker = DIAGRAM.title || ""; title = o.title || DIAGRAM.title || ""; sub = o.subtitle || "";
+    what = paras(o.what); how = paras(o.how);
+  } else if (selection.kind === "node"){
+    const n = byId[selection.id];
+    kicker = `${groupName(n.group)} · ${n.key}`; title = n.name; sub = n.blurb || "";
+    what = paras(n.what) + (n.condition ? `<div class="cond"><b>Condition — what's wrong with it</b>${esc(n.condition)}</div>` : "");
+    how = paras(n.how);
+  } else {
+    const e = DIAGRAM.edges[selection.id];
+    const A = byId[e.from], B = byId[e.to];
+    kicker = `FLOW · ${e.dashed ? "NOT SWITCHED ON" : "LIVE"}`; title = e.label || "data flow";
+    sub = `${A.name} → ${B.name}`;
+    what = paras(e.note || `Carries ${e.label||"data"} from ${A.name.toLowerCase()} to ${B.name.toLowerCase()}.`);
+    how = `<h2>On the wire — sample payloads</h2>` +
+      (e.snippets||[]).map(s => `<pre>${esc(s)}</pre>`).join("") +
+      (e.dashed ? `<div class="cond"><b>Condition</b>Wired end to end but not currently switched on.</div>` : "");
+  }
+  body.innerHTML = `<div class="kicker">${esc(kicker)}</div><h1>${esc(title)}</h1>` +
+    (sub ? `<div class="sub">${esc(sub)}</div>` : "") +
+    (tab === "what" ? what : how);
+}
+document.querySelectorAll("#tabs button").forEach(b =>
+  b.addEventListener("click", () => { tab = b.dataset.tab; renderPanel(); }));
+
+/* ── legend / stats ───────────────────────── */
+function renderChrome(){
+  $("repo-title").textContent = DIAGRAM.title || "codebase";
+  document.title = (DIAGRAM.title || "codebase") + " — diagram";
+  $("stats").innerHTML = (DIAGRAM.stats||[]).map(s =>
+    `<div class="stat"><span class="l">${esc(s.label)}</span><span class="v">${esc(s.value)}</span></div>`).join("");
+  const lg = $("legend"); lg.innerHTML = "";
+  (DIAGRAM.groups||[]).forEach(g => {
+    const h = document.createElement("div"); h.className = "g"; h.textContent = g.name; lg.appendChild(h);
+    DIAGRAM.nodes.filter(n => n.group === g.key).forEach(n => {
+      const d = document.createElement("div");
+      d.className = "li" + (n.dashed ? " dashed" : ""); d.dataset.node = n.id;
+      d.innerHTML = `<span class="b">${esc(n.key)}</span><span class="n">${esc(n.name)}</span><span class="c">${esc(n.count||"")}</span>`;
+      d.addEventListener("click", () => select("node", n.id));
+      d.addEventListener("mouseenter", () => showNodeTip(n));
+      d.addEventListener("mouseleave", hideTip);
+      lg.appendChild(d);
+    });
+  });
+}
+
+/* ── pan / zoom ───────────────────────────── */
+const svg = $("canvas");
+function applyVb(){ svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+let drag = null, suppressClick = false;
+svg.addEventListener("pointerdown", e => { drag = {x:e.clientX, y:e.clientY, vb:{...vb}, active:false}; });
+svg.addEventListener("pointermove", e => { if (!drag) return;
+  if (!drag.active && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4){ drag.active = true; svg.classList.add("dragging"); }
+  if (!drag.active) return;
+  const k = vb.w / svg.clientWidth;
+  vb.x = drag.vb.x - (e.clientX - drag.x) * k; vb.y = drag.vb.y - (e.clientY - drag.y) * k; applyVb(); });
+svg.addEventListener("pointerup", () => { if (drag && drag.active) suppressClick = true; drag = null; svg.classList.remove("dragging"); });
+svg.addEventListener("click", () => { if (suppressClick){ suppressClick = false; return; } select("overview"); });
+svg.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e, e.deltaY > 0 ? 1.18 : 1/1.18); }, {passive:false});
+function zoomAt(e, f){
+  const r = svg.getBoundingClientRect();
+  const mx = vb.x + (e.clientX - r.left)/r.width * vb.w;
+  const my = vb.y + (e.clientY - r.top)/r.height * vb.h;
+  vb.w *= f; vb.h *= f; vb.x = mx - (mx - vb.x)*f; vb.y = my - (my - vb.y)*f; applyVb();
+}
+$("zin").addEventListener("click", e => { zoomCenter(1/1.3); e.currentTarget.blur(); });
+$("zout").addEventListener("click", e => { zoomCenter(1.3); e.currentTarget.blur(); });
+function zoomCenter(f){ vb.x += vb.w*(1-f)/2; vb.y += vb.h*(1-f)/2; vb.w *= f; vb.h *= f; applyVb(); }
+
+/* ── controls ─────────────────────────────── */
+$("btn-flow").addEventListener("click", e => { running = !running;
+  e.currentTarget.textContent = running ? "❚❚ Pause the flow" : "▶ Resume the flow"; e.currentTarget.blur(); });
+$("btn-step").addEventListener("click", e => { if (running){ running = false;
+    $("btn-flow").textContent = "▶ Resume the flow"; } advance(0.9); e.currentTarget.blur(); });
+$("btn-reset").addEventListener("click", e => { vb = {...vb0}; applyVb(); select("overview"); e.currentTarget.blur(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") select("overview"); });
+
+/* ── boot ─────────────────────────────────── */
+renderChrome(); build(); renderPanel(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

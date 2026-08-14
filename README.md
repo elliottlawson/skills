@@ -16,7 +16,7 @@ Or clone and copy the skill directories you want into your client's skills path 
 
 | Skill | What it does |
 |---|---|
-| _First publications in preparation._ | |
+| [`codebase-diagram`](codebase-diagram) | Turn a codebase into an interactive visual system diagram — isometric structures, animated data flows, inspect panel. |
 
 ## License
 
