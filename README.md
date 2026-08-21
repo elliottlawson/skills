@@ -24,6 +24,7 @@ This prints the skill as a prompt you can paste into any agent. Handy for testin
 |---|---|
 | [`codebase-diagram`](codebase-diagram) | Generates an interactive visual diagram from a codebase. |
 | [`no-nonsense`](no-nonsense) | Instructs your agent to use plain English instead of "agentspeak", i.e. cryptic, convoluted, over-engineered output. |
+| [`purposeful-conversation`](purposeful-conversation) | Drive an outcome-oriented conversation with prescribed ownership — fixed per-turn format, converges to zero open questions, documents continuously. |
 | [`writing-craft`](writing-craft) | Write or rewrite any document so every line works toward its goal. |
 
 ## License
