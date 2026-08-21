@@ -5,7 +5,7 @@ description: Turn a codebase into an interactive visual system diagram — a sin
 
 # codebase-diagram
 
-Output is one self-contained HTML file (zero dependencies, works from `file://` or any static server). The agent explores the repo, authors a **model JSON**, and injects it into `template.html` (this skill's directory) via `render.py`. Never hand-edit the generated HTML — fix the model or the template and re-render.
+Output is one self-contained HTML file (zero dependencies, works from `file://` or any static server). The agent explores the repo, authors a **model JSON**, and injects it into `assets/template.html` (this skill's directory) via `scripts/render.py`. Never hand-edit the generated HTML — fix the model or the template and re-render.
 
 ## Step 1 — Explore the repo (delegate)
 
@@ -52,7 +52,7 @@ Layout rules:
 
 - `gx, gy` place the box on the iso grid; `w, d` its footprint in tiles; `h` its height in px (importance ≈ height, 14–46).
 - **Cluster by group**; put the central loop near the middle, inputs left, outputs right, infra below.
-- Footprints must not overlap — `render.py` rejects overlaps; nudge coordinates until clean.
+- Footprints must not overlap — `scripts/render.py` rejects overlaps; nudge coordinates until clean.
 - `via` adds right-angle waypoints in grid coords; use them to route around structures. Keep crossings minimal.
 - `dashed: true` on nodes/edges that exist but are not switched on (commented-out routes, stubs, mid-migration). Dashed edges get no dots.
 - Snippets: 1–4 per live edge, each one line, realistic. They are the dots' cargo — the whole point is inspecting them.
@@ -61,7 +61,7 @@ Layout rules:
 ## Step 3 — Render and verify
 
 ```bash
-python3 render.py model.json out.html
+python3 scripts/render.py model.json out.html
 ```
 
 Fix every validation error before proceeding. Then open the page and actually look at it (headless screenshot if available — e.g. Playwright): check for box overlaps the validator can't see (visual crowding), unreadable label collisions, and dots following their lines.
