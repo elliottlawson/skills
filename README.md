@@ -1,23 +1,29 @@
 # skills
 
-Agent skills by Elliott Lawson. [Agent Skills spec](https://agentskills.io)-compatible — each skill is a directory with a `SKILL.md` that any compliant agent client (OpenCode, Cursor, Claude Code, …) can load.
+A catalogue of agent skills I've found useful.
 
-Skills land here one at a time, when they're ready. Each one is iterated privately first and published deliberately — watch the repo if you want the drops.
-
-## Install
+## Install the whole catalogue
 
 ```bash
-npx skills add elliottlawson/skills -g -a opencode   # or -a cursor, -a claude, …
+npx skills add elliottlawson/skills -g -a opencode
 ```
 
-Or clone and copy the skill directories you want into your client's skills path (e.g. `~/.agents/skills/`).
+Swap `opencode` for `cursor` or `claude` to install into those agents.
 
-## Skills
+## Try one skill without installing
+
+```bash
+npx skills use elliottlawson/skills@no-nonsense
+```
+
+This prints the skill as a prompt you can paste into any agent. Handy for testing a skill before you commit to it.
+
+## The catalogue
 
 | Skill | What it does |
 |---|---|
-| [`codebase-diagram`](codebase-diagram) | Turn a codebase into an interactive visual system diagram — isometric structures, animated data flows, inspect panel. |
-| [`no-nonsense`](no-nonsense) | Translate cryptic, convoluted, or over-engineered AI output into plain English. |
+| [`codebase-diagram`](codebase-diagram) | Generates an interactive visual diagram from a codebase. |
+| [`no-nonsense`](no-nonsense) | Instructs your agent to use plain English instead of "agentspeak", i.e. cryptic, convoluted, over-engineered output. |
 
 ## License
 
